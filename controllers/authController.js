@@ -14,12 +14,35 @@ const generateToken = (id, role) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
-    // Check if user exists
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
+    // Normalize email
+    email = email.trim().toLowerCase();
+
+    // Validate password length
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long',
+      });
+    }
+
+    // Check if user already exists
     const userExists = await User.findOne({ email });
+
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(409).json({
+        success: false,
+        message: 'User already exists',
+      });
     }
 
     // Hash password
@@ -32,61 +55,92 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user.id,
-        email: user.email,
-        token: generateToken(user._id, user.role),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Authenticate a user
-// @route   POST /api/auth/login
-// @access  Public
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Check for user email
-    const user = await User.findOne({ email });
-    
-    // Check password
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
+    return res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
         _id: user.id,
         email: user.email,
         role: user.role,
         token: generateToken(user._id, user.role),
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-    }
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Register Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
+
+// @desc    Authenticate user
+// @route   POST /api/auth/login
+// @access  Public
+const loginUser = async (req, res) => {
+  try {
+    let { email, password } = req.body;
+
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
+    // Normalize email
+    email = email.trim().toLowerCase();
+
+    // Find user
+    const user = await User.findOne({ email });
+
+    // Validate credentials
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        _id: user.id,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user._id, user.role),
+      },
+    });
+  } catch (error) {
+    console.error('Login Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 // @desc    Logout user
 // @route   POST /api/auth/logout
 // @access  Public
 const logoutUser = (req, res) => {
-  // If you ever switch to storing tokens in cookies (HttpOnly), 
-  // this line will ensure the cookie is cleared.
   res.cookie('token', '', {
     httpOnly: true,
     expires: new Date(0),
   });
 
-  res.status(200).json({ message: 'Logged out successfully' });
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
 };
 
 module.exports = {
   registerUser,
   loginUser,
-  logoutUser
+  logoutUser,
 };
