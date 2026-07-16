@@ -1,14 +1,26 @@
+const mongoose = require('mongoose');
 const Event = require('../models/event');
 
 // @desc    Get all events
 // @route   GET /api/events
 exports.getEvents = async (req, res) => {
   try {
-    // Sort by createdAt descending (newest first)
-    const events = await Event.find().sort({ createdAt: -1 });
-    res.status(200).json(events);
+    const events = await Event.find()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: events.length,
+      data: events,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    console.error('Get Events Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
@@ -16,10 +28,34 @@ exports.getEvents = async (req, res) => {
 // @route   POST /api/events
 exports.createEvent = async (req, res) => {
   try {
-    const newEvent = await Event.create(req.body);
-    res.status(201).json(newEvent);
+    const { title } = req.body;
+
+    if (!title || title.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Event title is required',
+      });
+    }
+
+    const eventData = {
+      ...req.body,
+      title: title.trim(),
+    };
+
+    const newEvent = await Event.create(eventData);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Event created successfully',
+      data: newEvent,
+    });
   } catch (error) {
-    res.status(400).json({ message: 'Error creating event', error: error.message });
+    console.error('Create Event Error:', error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -28,20 +64,38 @@ exports.createEvent = async (req, res) => {
 exports.updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // { new: true } returns the updated document instead of the old one
-    const updatedEvent = await Event.findByIdAndUpdate(id, req.body, { 
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid event ID',
+      });
+    }
+
+    const updatedEvent = await Event.findByIdAndUpdate(id, req.body, {
       new: true,
-      runValidators: true 
+      runValidators: true,
     });
 
     if (!updatedEvent) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found',
+      });
     }
 
-    res.status(200).json(updatedEvent);
+    return res.status(200).json({
+      success: true,
+      message: 'Event updated successfully',
+      data: updatedEvent,
+    });
   } catch (error) {
-    res.status(400).json({ message: 'Error updating event', error: error.message });
+    console.error('Update Event Error:', error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -50,14 +104,34 @@ exports.updateEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid event ID',
+      });
+    }
+
     const deletedEvent = await Event.findByIdAndDelete(id);
 
     if (!deletedEvent) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found',
+      });
     }
 
-    res.status(200).json({ message: 'Event deleted successfully', id: id });
+    return res.status(200).json({
+      success: true,
+      message: 'Event deleted successfully',
+      deletedId: id,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting event', error: error.message });
+    console.error('Delete Event Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
