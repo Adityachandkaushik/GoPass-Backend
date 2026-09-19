@@ -10,7 +10,7 @@ const {
 // Route for getting all events and creating a new event
 router.route('/')
   .get(getEvents)
-  .post(createEvent);
+  .post(createEvent);  
 
 // Route for updating and deleting a specific event by ID
 router.route('/:id')
