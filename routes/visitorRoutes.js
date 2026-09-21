@@ -5,7 +5,7 @@ const { registerVisitor, getVisitors, scanVisitor, getVisitorStats, deleteVisito
 router.post('/', registerVisitor);
 router.get('/', getVisitors);
 router.post('/scan', scanVisitor);
-router.get('/stats', getVisitorStats);
+router.get('/stats', getVisitorStats);  
 router.delete('/:id', deleteVisitor);
 
 module.exports = router;
