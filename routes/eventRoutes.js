@@ -8,7 +8,7 @@ const {
 } = require('../controllers/eventController');
 
 // Route for getting all events and creating a new event
-router.route('/')
+router.route('/')  
   .get(getEvents)
   .post(createEvent);  
 
