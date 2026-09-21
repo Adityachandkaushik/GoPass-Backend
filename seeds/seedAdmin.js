@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const User = require("../models/user");
 const connectDB = require('../config/db');  
 
-const seedAdmin = async () => {
+const seedAdmin = async () => {   
   await connectDB();
 
   const adminEmail = "admin@college.edu";
